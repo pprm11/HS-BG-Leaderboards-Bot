@@ -1,15 +1,19 @@
 import os
 import aiocron
+import re
+from asyncio import TimeoutError
 from twitchio.ext import commands
 from leaderboardBot import LeaderBoardBot
 from parseRegion import isRegion
 from dotenv import load_dotenv
+from buddies import buddyDict
 
 load_dotenv()
 
 leaderboardBot = LeaderBoardBot()
 
 initialChannels = leaderboardBot.getChannels()
+brokenChannels = []
 
 twitchBot = commands.Bot(
     token=os.environ['TMI_TOKEN'],
@@ -36,6 +40,24 @@ async def call(ctx, func, name, *args):
             response = "Invalid region provided.\n" + response
 
     await ctx.send(response)
+
+@twitchBot.command(name='buddy')
+async def getBuddy(ctx):
+    buddyName = ctx.content.split(' ')[1].lower()
+
+    if buddyName not in buddyDict.keys():
+        await ctx.send("{} is not a valid hero, try the name of the hero with no spaces or non alphabetic characters".format(buddyName))
+    else:
+        await ctx.send(buddyDict[buddyName][1])
+
+@twitchBot.command(name='goldenbuddy')
+async def getBuddy(ctx):
+    buddyName = ctx.content.split(' ')[1].lower()
+
+    if buddyName not in buddyDict.keys():
+        await ctx.send("{} is not a valid hero, try the name of the hero with no spaces or non alphabetic characters".format(buddyName))
+    else:
+        await ctx.send(buddyDict[buddyName][2])
 
 @twitchBot.event
 async def event_message(ctx):
@@ -94,6 +116,7 @@ if __name__ == '__main__':
     @aiocron.crontab('* * * * *') ## Every minute check for new channels
     async def updateChannels():
         global initialChannels
+        global brokenChannels
 
         channels = leaderboardBot.getChannels()
 
@@ -103,7 +126,7 @@ if __name__ == '__main__':
         greeting_channels = []
 
         for channel in channels:
-            if channel not in joined_channels:
+            if channel not in joined_channels and channel not in brokenChannels:
                 new_channels.append(channel)
 
                 if channel not in initialChannels:
@@ -114,7 +137,20 @@ if __name__ == '__main__':
                 break
         
         print(new_channels)
-        await twitchBot.join_channels(new_channels)
+        try:
+            await twitchBot.join_channels(new_channels)
+        except TimeoutError as err:
+            quoteIndices = [m.start() for m in re.finditer('"', str(err))]
+            if len(quoteIndices) == 2:
+                firstQuoteIndex = quoteIndices[0]
+                secondQuoteIndex = quoteIndices[1]
+
+
+            brokenChannel = str(err)[firstQuoteIndex + 1: secondQuoteIndex]
+
+            print("Broken Channel" + brokenChannel)
+
+            brokenChannels.append(brokenChannel)
 
         for channel_name in greeting_channels:
             channel = twitchBot.get_channel(channel_name)

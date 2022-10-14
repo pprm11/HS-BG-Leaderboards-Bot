@@ -7,6 +7,7 @@ from discord.ext import commands
 from leaderboardBot import LeaderBoardBot
 from parseRegion import isRegion
 from dotenv import load_dotenv
+from buddies import buddyDict
 
 load_dotenv()
 
@@ -49,6 +50,34 @@ async def call(ctx, func, name, *args):
     except:
         pass
     await ctx.send(embed = getEmbedObject(response, args[0], name))
+
+@bot.command()
+async def buddy(ctx, *args):
+    buddyName = args[0].lower()
+    try:
+        await ctx.message.delete()
+    except:
+        pass
+
+    if buddyName not in buddyDict.keys():
+        await ctx.send("{} is not a valid hero, try the name of the hero with no spaces or non alphabetic characters".format(buddyName))
+    else:
+        embed = discord.Embed(title=f'{buddyDict[buddyName][0]}\'s buddy', description=buddyDict[buddyName][1])
+        await ctx.send(embed=embed)
+
+@bot.command()
+async def goldenbuddy(ctx, *args):
+    buddyName = args[0].lower()
+    try:
+        await ctx.message.delete()
+    except:
+        pass
+
+    if buddyName not in buddyDict.keys():
+        await ctx.send("{} is not a valid hero, try the name of the hero with no spaces or non alphabetic characters".format(buddyName))
+    else:
+        embed = discord.Embed(title=f'{buddyDict[buddyName][0]}\'s golden buddy', description=buddyDict[buddyName][2])
+        await ctx.send(embed=embed)
 
 @bot.command()
 async def bgrank(ctx, *args):
@@ -148,7 +177,7 @@ async def deletechannel(ctx, *args):
             await ctx.send('Only Lii can remove wall_lii from channels')
 
 # PI is on UTC time it seems
-@aiocron.crontab('59 6 * * *')
+@aiocron.crontab('59 7 * * *')
 async def sendDailyRecap():
     climbers = leaderboardBot.getMostMMRChanged(5, True)
     losers = leaderboardBot.getMostMMRChanged(5, False)

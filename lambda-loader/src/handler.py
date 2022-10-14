@@ -22,6 +22,9 @@ def add_leaderboards_to_db(database, *args):
     return snapshot, timeSnapshot, timeDB
 
 def handlePredictions(previous_rating, new_rating, channel_name, client_id, access_token, twitch_id):
+    print("previous_rating: " + str(previous_rating))
+    print("new_rating: " + str(new_rating))
+
     predicter = Predictions(channel_name, twitch_id, client_id, access_token)
     # Rating gain
     if new_rating > previous_rating:
@@ -42,19 +45,19 @@ def handler(event, context):
             'client_id':os.environ['CLIENT_ID'],
             'access_token':os.environ['ACCESS_TOKEN'],
             'twitch_id':os.environ['LII_TWITCH_ID']
-            },
+        },
         'madeforthis':{
             'channel_name':'sunbaconrelaxer',
             'client_id':os.environ['VICTOR_CLIENT_ID'],
             'access_token':os.environ['VICTOR_ACCESS_TOKEN'],
             'twitch_id':os.environ['VICTOR_TWITCH_ID']
-            },
+        },
         'twlevewinshs':{
             'channel_name':'sunbaconrelaxer',
             'client_id':os.environ['VICTOR_CLIENT_ID'],
             'access_token':os.environ['VICTOR_ACCESS_TOKEN'],
             'twitch_id':os.environ['VICTOR_TWITCH_ID']
-            },
+        },
     }
     
     database = data.RankingDatabaseClient()
@@ -68,14 +71,13 @@ def handler(event, context):
             else:
                 prediction_channels[name][region] = item['Ratings'][-1] ## last item
 
-
-    snapshot, timeSnapshot, timeDB = add_leaderboards_to_db(database, verbose=False)
+    snapshot, timeSnapshot, timeDB = add_leaderboards_to_db(database)
 
     for name in prediction_channels:
         for region in snapshot:
-            if timeSnapshot[region] >= timeDB[region] and name in snapshot[region]: ## wierd edge case if you fall off the leaderboard
-                handlePredictions(prediction_channels[name][region], snapshot[region][name],
-                    prediction_channels['channel_name'], prediction_channels['client_id'],
-                    prediction_channels['access_token'], prediction_channels['twitch_id'])
+            if timeSnapshot[region] >= timeDB[region] and name in snapshot[region]: ## weird edge case if you fall off the leaderboard
+                handlePredictions(prediction_channels[name][region], snapshot[region][name]['rating'],
+                    prediction_channels[name]['channel_name'], prediction_channels[name]['client_id'],
+                    prediction_channels[name]['access_token'], prediction_channels[name]['twitch_id'])
 
 
